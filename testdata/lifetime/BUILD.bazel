@@ -1,0 +1,7 @@
+# Behaviour that only appears when a request ends, which the differential
+# oracle cannot observe. Exposed as data so the test can read the .phpt files.
+filegroup(
+    name = "cases",
+    srcs = glob(["*.phpt"]),
+    visibility = ["//:__subpackages__"],
+)

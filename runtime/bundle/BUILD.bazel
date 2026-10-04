@@ -1,0 +1,26 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "bundle",
+    srcs = ["bundle.go"],
+    importpath = "github.com/moriyoshi/php2go/runtime/bundle",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//internal/ir/irpb",
+        "//runtime/interp",
+        "//runtime/php",
+        "//runtime/stdlib",
+        "@org_golang_google_protobuf//proto",
+    ],
+)
+
+go_test(
+    name = "bundle_test",
+    srcs = ["bundle_test.go"],
+    embed = [":bundle"],
+    deps = [
+        "//internal/ir/irpb",
+        "//runtime/interp",
+        "@org_golang_google_protobuf//proto",
+    ],
+)

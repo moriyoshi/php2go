@@ -1,0 +1,34 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
+
+go_library(
+    name = "php2phpt_lib",
+    srcs = ["main.go"],
+    importpath = "github.com/moriyoshi/php2go/cmd/php2phpt",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//internal/ir",
+        "//internal/ir/irpb",
+        "//internal/phpt",
+        "//internal/zend",
+        "//runtime/interp",
+        "//runtime/php",
+    ],
+)
+
+go_binary(
+    name = "php2phpt",
+    embed = [":php2phpt_lib"],
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "php2phpt_test",
+    srcs = ["lifetime_test.go"],
+    data = ["//testdata/lifetime:cases"],
+    embed = [":php2phpt_lib"],
+    deps = [
+        "//internal/ir",
+        "//internal/zend",
+        "//runtime/interp",
+    ],
+)

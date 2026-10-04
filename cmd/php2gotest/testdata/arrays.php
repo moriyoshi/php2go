@@ -1,0 +1,20 @@
+<?php
+$a = [];
+$a[] = "first";
+$a[5] = "five";
+$a[] = "after five";
+$a["k"] = "keyed";
+$a[true] = "bool";
+$a[null] = "null";
+$a["3"] = "numeric string";
+var_dump($a);
+echo $a[0], "|", $a[5], "|", $a["k"], "\n";
+echo count($a), "\n";
+$missing = $a[99];
+var_dump($missing);
+$u[2] = "vivified";
+var_dump($u);
+$b = [1, 2];
+$c = $b;
+$c[0] = 99;
+echo $b[0], "|", $c[0], "\n";

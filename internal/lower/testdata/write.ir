@@ -1,0 +1,71 @@
+func {main} -> zval {
+  .file "write.php"
+
+bb0:
+.line 24
+  ret 1
+}
+func fill -> zval {
+  .file "write.php"
+  .params [ 0 $rows "array" ]
+  .returns "array"
+
+bb0:
+.line 2
+  %0:zval = recv 0
+  call.intrinsic "write_var"($rows, %0)
+.line 3
+  %1:place = call.intrinsic "dim.ref"($rows, "a")
+  call.intrinsic "dim.set"(%1, "b", 1)
+.line 4
+  call.intrinsic "dim.append"($rows, 2)
+.line 5
+  %3:zval = call.intrinsic "read_var"($rows)
+  %2:zval = call.intrinsic "coerce_return"(%3)
+  call.intrinsic "bind_var"($rows, %2), separate
+  %4:zval = call.intrinsic "read_var"($rows)
+  ret %4
+
+bb1:
+.line 6
+  verify_return.none
+  ret null
+}
+func peek -> zval {
+  .file "write.php"
+  .returns "int"
+
+bb0:
+.line 22
+  %0:zval = call.intrinsic "sprop.get"("n", "Reg"), share
+  %1:zval = call.intrinsic "sprop.get.silent"("n", "Reg")
+  %2:zval = call.intrinsic "copy.silent"(%1), share
+  %3:bool = call.intrinsic "is_set"(%2)
+  br %3, bb2(%2), bb1
+
+bb1:
+  %4:zval = call.intrinsic "copy"(0), share
+  jmp bb2(%4)
+
+bb2(%7: zval):
+  %5:zval = call.intrinsic "add"(%0, %7)
+  %6:zval = call.intrinsic "coerce_return"(%5)
+  ret %6
+
+bb3:
+.line 23
+  verify_return.none
+  ret null
+}
+func stash -> zval {
+  .file "write.php"
+  .params [ 0 $v "int" ]
+
+bb0:
+.line 14
+  %0:zval = recv 0
+.line 15
+  call.intrinsic "sprop.set"("n", "Reg", %0)
+.line 16
+  ret null
+}

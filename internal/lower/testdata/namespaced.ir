@@ -1,0 +1,49 @@
+func {main} -> zval {
+  .file "namespaced.php"
+
+bb0:
+.line 18
+  ret 1
+}
+func App\Support\render -> zval {
+  .file "namespaced.php"
+  .params [ 0 $rows "array" ]
+  .returns "string"
+
+bb0:
+.line 4
+  %0:zval = recv 0
+  call.intrinsic "write_var"($rows, %0)
+.line 8
+  %1:bool = frameless_available "app\\support\\implode"
+  br %1, bb2, bb1
+
+bb1:
+  %2:zval = call.fn "App\\Support\\implode"(byval ",", preferref $rows), fallback="implode"
+  call.intrinsic "write_var"($__t4, %2)
+  jmp bb3
+
+bb2:
+  %10:zval = call.intrinsic "read_var"($rows)
+  %3:zval = call.fn "implode"(byval ",", byval %10), frameless
+  call.intrinsic "write_var"($__t4, %3)
+  jmp bb3
+
+bb3:
+.line 11
+  %4:zval = call.fn "str_repeat"(byval "-", byval 2), share
+.line 14
+  %5:*obj = closure.from_call "App\\Support\\strtoupper", fallback="strtoupper"
+  release_prev $f, %5, track
+.line 16
+  %6:zval = call.intrinsic "concat"($__t4, %4)
+  %7:zval = call.dynamic %5(byval "x"), refuse_byref=0
+  %8:zval = call.intrinsic "concat"(%6, %7)
+  %9:zval = call.intrinsic "coerce_return"(%8)
+  ret %9
+
+bb4:
+.line 17
+  verify_return.none
+  ret null
+}

@@ -1,0 +1,41 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+# runtime/php's catalogue test reads the emitter prelude to check that every
+# intrinsic the generated Go calls is one the catalogue describes.
+exports_files(["gogen.go"])
+
+go_library(
+    name = "gogen",
+    srcs = [
+        "constexpr.go",
+        "gogen.go",
+        "reflengine.go",
+        "reflextra.go",
+    ],
+    importpath = "github.com/moriyoshi/php2go/internal/gogen",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//internal/ir/irpb",
+        "//internal/lower",
+        "//runtime/php",
+    ],
+)
+
+go_test(
+    name = "gogen_test",
+    srcs = [
+        "fusedmath_test.go",
+        "gccollect_test.go",
+        "gogen_test.go",
+        "unrenderable_test.go",
+    ],
+    data = glob(["testdata/**"]),
+    embed = [":gogen"],
+    deps = [
+        "//internal/ir/irpb",
+        "//internal/ir",
+        "//internal/lower",
+        "//internal/zend",
+        "//runtime/php",
+    ],
+)

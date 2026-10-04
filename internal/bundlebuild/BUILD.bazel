@@ -1,0 +1,26 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "bundlebuild",
+    srcs = ["builder.go"],
+    importpath = "github.com/moriyoshi/php2go/internal/bundlebuild",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//internal/ir",
+        "//internal/ir/irpb",
+        "//internal/userland",
+        "//internal/zend",
+        "//runtime/bundle",
+    ],
+)
+
+go_test(
+    name = "bundlebuild_test",
+    srcs = ["builder_test.go"],
+    deps = [
+        ":bundlebuild",
+        "//internal/zend",
+        "//runtime/bundle",
+        "//runtime/php",
+    ],
+)

@@ -1,0 +1,19 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+exports_files(["surface.tsv", "shape.tsv"])
+
+go_library(
+    name = "userland",
+    srcs = ["catalog.go"],
+    embedsrcs = glob(["ext/*.php"]),
+    importpath = "github.com/moriyoshi/php2go/internal/userland",
+    visibility = ["//:__subpackages__"],
+)
+
+go_test(
+    name = "userland_test",
+    srcs = ["surface_test.go"],
+    embedsrcs = ["surface.tsv"],
+    embed = [":userland"],
+    deps = ["//internal/zend"],
+)

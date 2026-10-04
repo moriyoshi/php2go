@@ -1,0 +1,14 @@
+# Bazel
+/bazel-*
+MODULE.bazel.lock
+
+# Build output
+/build/
+/php2eval
+/php2go
+/php2gotest
+/php2harvest
+/php2lower
+/php2phpt
+
+*.orig

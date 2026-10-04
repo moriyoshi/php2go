@@ -1,0 +1,15 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+# Parsing .phpt needs no PHP build; only running the tests does.
+go_library(
+    name = "phpt",
+    srcs = ["phpt.go"],
+    importpath = "github.com/moriyoshi/php2go/internal/phpt",
+    visibility = ["//:__subpackages__"],
+)
+
+go_test(
+    name = "phpt_test",
+    srcs = ["phpt_test.go"],
+    deps = [":phpt"],
+)

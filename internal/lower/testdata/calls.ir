@@ -1,0 +1,67 @@
+func {main} -> zval {
+  .file "calls.php"
+
+bb0:
+.line 17
+  ret 1
+}
+func decorate -> zval {
+  .file "calls.php"
+  .params [ 0 $w "string" ]
+  .returns "string"
+
+bb0:
+.line 13
+  %0:zval = recv 0
+.line 14
+  %1:zval = call.intrinsic "prop.get"($this, "suffix")
+  %2:zval = call.intrinsic "concat"(%0, %1)
+  %3:zval = call.intrinsic "coerce_return"(%2)
+  ret %3
+
+bb1:
+.line 15
+  verify_return.none
+  ret null
+}
+func helper -> zval {
+  .file "calls.php"
+  .params [ 0 $s "string", 1 $n "int" ]
+  .returns "string"
+
+bb0:
+.line 2
+  %0:zval = recv 0
+  %1:zval = recv 1
+.line 3
+  %2:zval = call.fn "str_repeat"(byval %0, byval %1)
+  %3:zval = call.intrinsic "coerce_return"(%2)
+  ret %3
+
+bb1:
+.line 4
+  verify_return.none
+  ret null
+}
+func make -> zval {
+  .file "calls.php"
+  .params [ 0 $who "string" ]
+  .returns "string"
+
+bb0:
+.line 9
+  %0:zval = recv 0
+  call.intrinsic "write_var"($who, %0)
+.line 10
+  %5:zval = call.intrinsic "read_var"($who)
+  %1:zval = call.fn "helper"(byval %5, byval 2)
+  %2:zval = call.method $this, "decorate"(preferref $who)
+  %3:zval = call.intrinsic "concat"(%1, %2)
+  %4:zval = call.intrinsic "coerce_return"(%3)
+  ret %4
+
+bb1:
+.line 11
+  verify_return.none
+  ret null
+}

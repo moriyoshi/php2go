@@ -1,0 +1,26 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "hybrid",
+    srcs = ["zend.go"],
+    importpath = "github.com/moriyoshi/php2go/runtime/hybrid",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//internal/ir",
+        "//internal/ir/irpb",
+        "//internal/zend",
+        "//runtime/bundle",
+		"//runtime/interp",
+		"//runtime/php",
+    ],
+)
+
+go_test(
+    name = "hybrid_test",
+    srcs = ["zend_test.go"],
+    embed = [":hybrid"],
+    deps = [
+        "//internal/ir/irpb",
+        "//internal/zend",
+    ],
+)

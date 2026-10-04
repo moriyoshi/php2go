@@ -1,0 +1,72 @@
+func {main} -> zval {
+  .file "fiber.php"
+
+bb0:
+.line 25
+  ret 1
+}
+func App\driver -> zval {
+  .file "fiber.php"
+  .params [ 0 $fn "" ]
+  .returns "array"
+
+bb0:
+.line 19
+  %0:zval = recv 0
+  call.intrinsic "write_var"($fn, %0)
+.line 21
+  %1:*obj = new "Fiber"
+  call.ctor %1(preferref $fn)
+  release_prev $f, %1, track
+.line 22
+  %2:zval = call.method %1, "start"(byval 1), share
+.line 23
+  %3:*arr = call.intrinsic "array.new"()
+  %4:*arr = call.intrinsic "array.append"(%3, %2)
+  %5:zval = call.method %1, "getReturn"()
+  %6:*arr = call.intrinsic "array.append"(%4, %5)
+  %7:zval = fiber.current()
+  %8:*arr = call.intrinsic "array.append"(%6, %7)
+  %9:zval = call.intrinsic "coerce_return"(%8)
+  ret %9
+
+bb1:
+.line 24
+  verify_return.none
+  ret null
+}
+func App\inside -> zval {
+  .file "fiber.php"
+  .params [ 0 $v "" ]
+  .returns "string"
+
+bb0:
+.line 10
+  %0:zval = recv 0
+  call.intrinsic "write_var"($v, %0)
+.line 12
+  %5:zval = call.intrinsic "read_var"($v)
+  fiber.suspend(byval %5) -> bb1
+
+bb1(%1: zval):
+  call.intrinsic "write_var"($__t3, %1)
+  call.intrinsic "write_var"($got, %1)
+.line 13
+  %6:zval = call.intrinsic "read_var"($v)
+  fiber.suspend(byval %6) -> bb2
+
+bb2(%2: zval):
+  call.intrinsic "write_var"($__t5, %2)
+  call.intrinsic "write_var"($g2, %2)
+.line 14
+  %7:zval = call.intrinsic "read_var"($got)
+  %8:zval = call.intrinsic "read_var"($g2)
+  %3:zval = call.intrinsic "concat"(%7, %8)
+  %4:zval = call.intrinsic "coerce_return"(%3)
+  ret %4
+
+bb3:
+.line 15
+  verify_return.none
+  ret null
+}

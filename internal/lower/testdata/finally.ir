@@ -1,0 +1,129 @@
+func {main} -> zval {
+  .file "finally.php"
+
+bb0:
+.line 32
+  ret 1
+}
+func guarded -> zval {
+  .file "finally.php"
+  .params [ 0 $early "bool" ]
+  .returns "int"
+  region r0 { finally -> bb13 }
+
+bb0:
+.line 2
+  %0:zval = recv 0
+  jmp bb1
+
+bb1 in r0:
+.line 4
+  br %0, bb2, bb4
+
+bb2 in r0:
+.line 5
+  jmp bb10
+
+bb3 in r0:
+  ret 1
+
+bb4 in r0:
+.line 7
+  jmp bb11
+
+bb5 in r0:
+  ret 2
+
+bb6 in r0:
+.line 8
+  jmp bb12
+
+bb7 in r0:
+  jmp bb9
+
+bb9:
+.line 11
+  verify_return.none
+  ret null
+
+bb10 in r0:
+.line 9
+  call.intrinsic "echo"("done\n")
+  jmp bb3
+
+bb11 in r0:
+.line 9
+  call.intrinsic "echo"("done\n")
+  jmp bb5
+
+bb12 in r0:
+.line 9
+  call.intrinsic "echo"("done\n")
+  jmp bb7
+
+bb13 in r0:
+.line 9
+  call.intrinsic "echo"("done\n")
+  rethrow
+}
+func run -> zval {
+  .file "finally.php"
+  .params [ 0 $early "bool" ]
+  .returns "int"
+  region r0 { finally -> bb13 }
+
+bb0:
+.line 20
+  %0:zval = recv 0
+  jmp bb1
+
+bb1 in r0:
+.line 23
+  br %0, bb2, bb4
+
+bb2 in r0:
+.line 24
+  jmp bb10
+
+bb3 in r0:
+  ret 1
+
+bb4 in r0:
+.line 26
+  jmp bb11
+
+bb5 in r0:
+  ret 2
+
+bb6 in r0:
+.line 27
+  jmp bb12
+
+bb7 in r0:
+  jmp bb9
+
+bb9:
+.line 30
+  verify_return.none
+  ret null
+
+bb10 in r0:
+.line 28
+  call.intrinsic "prop.set"($this, "last", "done")
+  jmp bb3
+
+bb11 in r0:
+.line 28
+  call.intrinsic "prop.set"($this, "last", "done")
+  jmp bb5
+
+bb12 in r0:
+.line 28
+  call.intrinsic "prop.set"($this, "last", "done")
+  jmp bb7
+
+bb13 in r0:
+.line 28
+  call.intrinsic "prop.set"($this, "last", "done")
+  rethrow
+}

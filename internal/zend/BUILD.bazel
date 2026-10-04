@@ -1,0 +1,29 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "zend",
+    srcs = ["zend.go"],
+    # Headers come from the generated headers-only target; linking goes through
+    # the shared library. The static archives are not an option: PHP's object
+    # graph is cyclic, which cc_shared_library resolves by producing a single
+    # link unit.
+    cdeps = [
+        "//third_party:libphp",
+        "@php//:headers",
+    ],
+    cgo = True,
+    importpath = "github.com/moriyoshi/php2go/internal/zend",
+    visibility = ["//:__subpackages__"],
+)
+
+go_test(
+    name = "zend_test",
+    srcs = [
+        # An in-package file, so the test target embeds the library rather than
+        # depending on it: export_test.go reaches an unexported helper.
+        "export_test.go",
+        "zend_test.go",
+    ],
+    data = glob(["testdata/**"]),
+    embed = [":zend"],
+)

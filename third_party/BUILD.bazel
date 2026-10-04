@@ -1,0 +1,13 @@
+load("@rules_cc//cc:defs.bzl", "cc_import")
+
+exports_files(["php.BUILD.bazel"])
+
+# Consumers must link libphp.so rather than the static archives: PHP's object
+# graph is cyclic (php-core references every extension's module pointer, and
+# every extension references engine symbols), which cc_shared_library resolves
+# by producing a single link unit and static archives cannot express.
+cc_import(
+    name = "libphp",
+    shared_library = "@php//:sapi_embed_shared",
+    visibility = ["//visibility:public"],
+)

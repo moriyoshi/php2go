@@ -1,0 +1,107 @@
+func {main} -> zval {
+  .file "regions.php"
+
+bb0:
+.line 17
+  ret 1
+}
+func nested -> zval {
+  .file "regions.php"
+  .params [ 0 $rows "array" ]
+  .returns "string"
+  region r0 { catch -> bb8 }
+  region r1 { catch -> bb4 }
+
+bb0:
+.line 2
+  %0:zval = recv 0
+.line 3
+  call.intrinsic "write_var"($log, "")
+  jmp bb1
+
+bb1 in r0:
+.line 5
+  %1:zval = call.intrinsic "iter.new"(%0)
+  call.intrinsic "write_var"($__iter6, %1)
+  %2:bool = call.intrinsic "iter.valid"($__iter6)
+  br %2, bb2, bb7
+
+bb2 in r0:
+  %10:bool = call.intrinsic "iter.valid"($__iter6)
+  br %10, bb16, bb7
+
+bb3 in r1:
+.line 7
+  %11:zval = call.intrinsic "read_var"($r)
+  %15:zval = call.intrinsic "read_var"($log)
+  %12:zval = call.intrinsic "concat"(%15, %11)
+  call.intrinsic "write_var"($log, %12)
+  jmp bb6
+
+bb4(%3: zval) in r0:
+.line 8
+  call.intrinsic "write_var"($__exc4, %3)
+  %6:bool = instanceof $__exc4, "TypeError"
+  br %6, bb12, bb13
+
+bb5 in r0:
+.line 9
+  %16:zval = call.intrinsic "read_var"($log)
+  %13:zval = call.intrinsic "concat"(%16, "T")
+  call.intrinsic "write_var"($log, %13)
+  jmp bb6
+
+bb6 in r0:
+.line 5
+  jmp bb17
+
+bb7 in r0:
+  call.intrinsic "iter.free"($__iter6)
+  jmp bb10
+
+bb8(%4: zval):
+.line 12
+  call.intrinsic "write_var"($__exc8, %4)
+  %7:bool = instanceof $__exc8, "RuntimeException"
+  br %7, bb14, bb15
+
+bb9:
+.line 13
+  ret "outer"
+
+bb10:
+.line 15
+  %17:zval = call.intrinsic "read_var"($log)
+  %5:zval = call.intrinsic "coerce_return"(%17)
+  call.intrinsic "bind_var"($log, %5), separate
+  %18:zval = call.intrinsic "read_var"($log)
+  ret %18
+
+bb11:
+.line 16
+  verify_return.none
+  ret null
+
+bb12 in r0:
+  call.intrinsic "write_var"($inner, $__exc4), strict_assign
+  jmp bb5
+
+bb13 in r1:
+  rethrow
+
+bb14:
+  jmp bb9
+
+bb15 in r0:
+  rethrow
+
+bb16 in r0:
+  %8:zval = call.intrinsic "iter.current"($__iter6)
+  call.intrinsic "write_var"($r, %8)
+  jmp bb3
+
+bb17 in r0:
+  %9:zval = call.intrinsic "iter.next"($__iter6)
+  call.intrinsic "write_var"($__iter6, %9)
+  jmp bb2
+}

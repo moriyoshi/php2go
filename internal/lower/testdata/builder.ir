@@ -1,0 +1,45 @@
+func {main} -> zval {
+  .file "builder.php"
+
+bb0:
+.line 16
+  ret 1
+}
+func build -> zval {
+  .file "builder.php"
+  .params [ 0 $a "string", 1 $b "string", 2 $rows "array" ]
+  .returns "string"
+
+bb0:
+.line 2
+  %0:zval = recv 0
+  %1:zval = recv 1
+  %2:zval = recv 2
+.line 5
+  %3:zval = call.intrinsic "concat"(%0, %1)
+.line 9
+  %4:*strbuf = call.intrinsic "strbuf.new"("x")
+  %5:*strbuf = call.intrinsic "strbuf.append"(%4, %0)
+  %6:*strbuf = call.intrinsic "strbuf.append"(%5, "y")
+  %7:*strbuf = call.intrinsic "strbuf.append"(%6, %1)
+  %8:*strbuf = call.intrinsic "strbuf.append"(%7, "z")
+  %9:*str = call.intrinsic "strbuf.finish"(%8)
+.line 12
+  %10:*arr = call.intrinsic "array.new"()
+  %11:*arr = call.intrinsic "array.append"(%10, %0)
+  %12:*arr = call.intrinsic "array.append"(%11, %1)
+  %13:*arr = call.intrinsic "array.append"(%12, "c")
+.line 14
+  %14:zval = call.intrinsic "concat"(%3, %9)
+  %15:zval = call.intrinsic "count"(%13)
+  %16:zval = call.intrinsic "concat"(%14, %15)
+  %17:zval = call.intrinsic "count"(%2)
+  %18:zval = call.intrinsic "concat"(%16, %17)
+  %19:zval = call.intrinsic "coerce_return"(%18)
+  ret %19
+
+bb1:
+.line 15
+  verify_return.none
+  ret null
+}

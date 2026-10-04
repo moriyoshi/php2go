@@ -1,0 +1,53 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
+
+go_library(
+    name = "php2gotest_lib",
+    srcs = [
+        "fold.go",
+        "main.go",
+        "userlandlink.go",
+    ],
+    importpath = "github.com/moriyoshi/php2go/cmd/php2gotest",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//internal/gogen",
+        "//internal/ir",
+        "//internal/ir/irpb",
+        "//internal/lower",
+        "//internal/phpt",
+        "//internal/userland",
+        "//internal/zend",
+        "//runtime/php",
+        "//runtime/stdlib",
+        "@org_golang_google_protobuf//proto",
+    ],
+)
+
+filegroup(
+    name = "testdata",
+    srcs = glob(["testdata/**"]),
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "profiletestdata",
+    srcs = glob(["profiletestdata/**"]),
+    visibility = ["//visibility:public"],
+)
+
+go_binary(
+    name = "php2gotest",
+    embed = [":php2gotest_lib"],
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "php2gotest_test",
+    srcs = ["hybrid_emit_test.go"],
+    embed = [":php2gotest_lib"],
+    deps = [
+        "//internal/zend",
+        "//runtime/hybrid",
+        "//runtime/php",
+    ],
+)

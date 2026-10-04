@@ -1,0 +1,24 @@
+php2go
+
+The original php2go source code is licensed under the MIT License.
+See LICENSE. The separate upstream components below retain their own terms.
+
+PHP source and linked Zend engine
+  The pinned PHP source is in third_party/php-src (a Git submodule).
+  Its PHP License 3.01, Zend Engine License 2.00, and TSRM license are
+  reproduced in licenses/ for source archives that omit submodules.
+
+  This product includes PHP software, freely available from
+  <http://www.php.net/software/>.
+  This product includes the Zend Engine, freely available at
+  http://www.zend.com
+  The Zend Engine is freely available at http://www.zend.com
+
+  The Zend Engine License also specifies an acknowledgment for advertising
+  materials mentioning its features or use. Distributors of binaries linked
+  with Zend must review that condition and the licenses of other PHP
+  components actually included in their build.
+
+Go Protocol Buffers
+  google.golang.org/protobuf is used under its BSD 3-Clause license.
+  The text is reproduced in licenses/protobuf-go-BSD-3-Clause.txt.

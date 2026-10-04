@@ -1,0 +1,14 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+# The generated bindings are committed, so an ordinary build needs neither buf
+# nor protoc-gen-go. Regenerate with: (cd proto && buf generate)
+go_library(
+    name = "irpb",
+    srcs = ["ir.pb.go"],
+    importpath = "github.com/moriyoshi/php2go/internal/ir/irpb",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "@org_golang_google_protobuf//reflect/protoreflect",
+        "@org_golang_google_protobuf//runtime/protoimpl",
+    ],
+)

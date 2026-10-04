@@ -1,0 +1,7 @@
+version: v2
+plugins:
+  - local: protoc-gen-go
+    out: ..
+    # module= strips the import-path prefix so output lands at
+    # internal/ir/irpb rather than under a github.com/... tree.
+    opt: module=github.com/moriyoshi/php2go

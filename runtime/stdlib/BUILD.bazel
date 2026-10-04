@@ -1,0 +1,16 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "stdlib",
+    srcs = glob(
+        ["*.go"],
+        exclude = ["*_test.go"],
+    ),
+    embedsrcs = ["html_translation_tables.bin"],
+    importpath = "github.com/moriyoshi/php2go/runtime/stdlib",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//runtime/libc",
+        "//runtime/php",
+    ],
+)

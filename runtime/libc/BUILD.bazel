@@ -1,0 +1,39 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "libc",
+    srcs = [
+        "crypt_linux.go",
+        "crypt_stub.go",
+        "exec_stub.go",
+        "exec_unix.go",
+        "fs_stub.go",
+        "fs_unix.go",
+        "glob_stub.go",
+        "glob_unix.go",
+        "network_stub.go",
+        "network_unix.go",
+        "syslog_stub.go",
+        "syslog_unix.go",
+        "time_stub.go",
+        "time_unix.go",
+    ],
+    cgo = True,
+    clinkopts = ["-lcrypt"],
+    importpath = "github.com/moriyoshi/php2go/runtime/libc",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "libc_test",
+    srcs = [
+        "crypt_test.go",
+        "exec_test.go",
+        "fs_test.go",
+        "glob_test.go",
+        "network_test.go",
+        "syslog_test.go",
+        "time_test.go",
+    ],
+    embed = [":libc"],
+)

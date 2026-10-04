@@ -1,0 +1,118 @@
+func {main} -> zval {
+  .file "specialized.php"
+
+bb0:
+.line 42
+  ret 1
+}
+func containers -> zval {
+  .file "specialized.php"
+  .params [ 0 $rows "array", 1 $i "int" ]
+
+bb0:
+.line 34
+  %0:zval = recv 0
+  %1:zval = recv 1
+.line 35
+  %2:zval = call.intrinsic "count.array"(%0)
+.line 36
+  %3:zval = call.intrinsic "dim.get.array"(%0, %1), share
+.line 37
+  %4:zval = call.intrinsic "iter.new.array"(%0)
+  %5:bool = call.intrinsic "iter.valid"(%4)
+  br %5, bb1(%4, %2), bb3(%4, %2)
+
+bb1(%20: zval, %22: zval):
+  %12:bool = call.intrinsic "iter.valid"(%20)
+  br %12, bb5, bb3(%20, %22)
+
+bb2:
+.line 38
+  %6:zval = call.intrinsic "add.numeric"(%22, 1)
+.line 37
+  jmp bb6
+
+bb3(%21: zval, %23: zval):
+  call.intrinsic "iter.free"(%21)
+.line 40
+  %7:*arr = call.intrinsic "array.new"()
+  %8:*arr = call.intrinsic "array.append"(%7, %23)
+  %9:*arr = call.intrinsic "array.append"(%8, %3)
+  ret %9
+
+bb4:
+.line 41
+  ret null
+
+bb5:
+  %10:zval = call.intrinsic "iter.current.array"(%20), share
+  jmp bb2
+
+bb6:
+  %11:zval = call.intrinsic "iter.next.array"(%20)
+  jmp bb1(%11, %6)
+}
+func general -> zval {
+  .file "specialized.php"
+  .params [ 0 $x "", 1 $y "" ]
+
+bb0:
+.line 15
+  %0:zval = recv 0
+  %1:zval = recv 1
+.line 18
+  %2:zval = call.intrinsic "add"(%0, %1)
+  ret %2
+
+bb1:
+.line 19
+  ret null
+}
+func mixedKinds -> zval {
+  .file "specialized.php"
+  .params [ 0 $s "string", 1 $n "int" ]
+
+bb0:
+.line 21
+  %0:zval = recv 0
+  %1:zval = recv 1
+.line 24
+  %2:zval = call.intrinsic "concat"(%0, "x")
+.line 25
+  %3:zval = call.intrinsic "strict_equal"(%2, %0)
+.line 26
+  %4:zval = call.intrinsic "shift_left"(%1, 2)
+.line 27
+  %5:zval = call.intrinsic "compare"(%1, 3)
+.line 28
+  %6:*arr = call.intrinsic "array.new"()
+  %7:*arr = call.intrinsic "array.append"(%6, %2)
+  %8:*arr = call.intrinsic "array.append"(%7, %3)
+  %9:*arr = call.intrinsic "array.append"(%8, %4)
+  %10:*arr = call.intrinsic "array.append"(%9, %5)
+  ret %10
+
+bb1:
+.line 29
+  ret null
+}
+func narrow -> zval {
+  .file "specialized.php"
+  .params [ 0 $a "int", 1 $b "int" ]
+
+bb0:
+.line 9
+  %0:zval = recv 0
+  %1:zval = recv 1
+.line 10
+  %2:zval = call.intrinsic "add.int"(%0, %1)
+.line 11
+  %3:zval = call.intrinsic "mul.numeric"(%2, 2)
+.line 12
+  %4:zval = call.intrinsic "sub.numeric"(%3, 1)
+  ret %4
+
+bb1:
+.line 13
+  ret null
+}

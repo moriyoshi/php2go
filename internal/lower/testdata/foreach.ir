@@ -1,0 +1,98 @@
+func {main} -> zval {
+  .file "foreach.php"
+
+bb0:
+.line 22
+  ret 1
+}
+func joined -> zval {
+  .file "foreach.php"
+  .params [ 0 $rows "array" ]
+  .returns "string"
+
+bb0:
+.line 15
+  %0:zval = recv 0
+.line 16
+.line 17
+  %1:zval = call.intrinsic "iter.new"(%0)
+  %2:bool = call.intrinsic "iter.valid"(%1)
+  br %2, bb1(%1, ""), bb3(%1, "")
+
+bb1(%18: zval, %20: zval):
+  %11:bool = call.intrinsic "iter.valid"(%18)
+  br %11, bb5, bb3(%18, %20)
+
+bb2:
+.line 18
+  %3:zval = call.intrinsic "concat"(%20, %9)
+  %4:zval = call.intrinsic "concat"(%3, "=")
+  %5:zval = call.intrinsic "concat"(%4, %8)
+  %6:zval = call.intrinsic "concat"(%5, ";")
+.line 17
+  jmp bb6
+
+bb3(%19: zval, %21: zval):
+  call.intrinsic "iter.free"(%19)
+.line 20
+  %7:zval = call.intrinsic "coerce_return"(%21)
+  ret %7
+
+bb4:
+.line 21
+  verify_return.none
+  ret null
+
+bb5:
+  %8:zval = call.intrinsic "iter.current"(%18), share
+  %9:zval = call.intrinsic "iter.key"(%18)
+  jmp bb2
+
+bb6:
+  %10:zval = call.intrinsic "iter.next"(%18)
+  jmp bb1(%10, %6)
+}
+func total -> zval {
+  .file "foreach.php"
+  .params [ 0 $rows "array" ]
+  .returns "int"
+
+bb0:
+.line 2
+  %0:zval = recv 0
+.line 3
+.line 4
+  %1:zval = call.intrinsic "iter.new"(%0)
+  %2:bool = call.intrinsic "iter.valid"(%1)
+  br %2, bb1(%1, 0), bb3(%1, 0)
+
+bb1(%14: zval, %16: zval):
+  %8:bool = call.intrinsic "iter.valid"(%14)
+  br %8, bb5, bb3(%14, %16)
+
+bb2:
+.line 5
+  %3:zval = call.intrinsic "add"(%16, %5)
+.line 4
+  jmp bb6
+
+bb3(%15: zval, %17: zval):
+  call.intrinsic "iter.free"(%15)
+.line 7
+  %4:zval = call.intrinsic "coerce_return"(%17)
+  ret %4
+
+bb4:
+.line 8
+  verify_return.none
+  ret null
+
+bb5:
+  %5:zval = call.intrinsic "iter.current"(%14), share
+  %6:zval = call.intrinsic "iter.key"(%14)
+  jmp bb2
+
+bb6:
+  %7:zval = call.intrinsic "iter.next"(%14)
+  jmp bb1(%7, %3)
+}

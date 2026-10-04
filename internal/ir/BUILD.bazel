@@ -1,0 +1,27 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "ir",
+    srcs = [
+        "ir.go",
+        "loader.go",
+    ],
+    importpath = "github.com/moriyoshi/php2go/internal/ir",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//internal/ir/irpb",
+        "//internal/zend",
+        "@org_golang_google_protobuf//proto",
+    ],
+)
+
+go_test(
+    name = "ir_test",
+    srcs = ["ir_test.go"],
+    data = glob(["testdata/**"]),
+    deps = [
+        ":ir",
+        "//internal/ir/irpb",
+        "//internal/zend",
+    ],
+)

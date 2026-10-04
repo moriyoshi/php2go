@@ -1,0 +1,541 @@
+syntax = "proto3";
+
+package php2go.ir.v1;
+
+option go_package = "github.com/moriyoshi/php2go/internal/ir/irpb";
+
+// Manifest is written once per harvest run. It pins the IR to the build that
+// produced it: the opcode set, operand encoding, and builtin signatures are all
+// version-specific, so units harvested by one PHP cannot be read as though they
+// came from another.
+message Manifest {
+  Provenance provenance = 1;
+
+  // Opcode names indexed by opcode number, taken from the linked engine rather
+  // than a parsed header so the table cannot drift from the build. Unassigned
+  // slots are empty.
+  repeated string opcode_names = 2;
+
+  // Signatures of the functions the engine itself provides. These seed type
+  // inference and are the specification any reimplementation must satisfy.
+  repeated Builtin builtins = 3;
+
+  // Constants the engine registers before any user code runs -- PHP_EOL,
+  // E_ALL, SORT_REGULAR and several thousand more contributed by extensions.
+  // Harvested rather than transcribed, since their values are build-specific.
+  repeated Constant constants = 4;
+
+  // The shape of the classes the engine itself provides. A user class extending
+  // Exception, or a catch clause naming one, cannot resolve without these.
+  // Methods are absent: an internal method is a C function with no op_array, so
+  // its behaviour has to be supplied by the runtime.
+  repeated Class builtin_classes = 5;
+
+  // Names behind ZEND_FRAMELESS_ICALL_*, indexed by the extended_value those
+  // opcodes carry. The opcode names no function otherwise, so this table is
+  // what makes such a call resolvable at all.
+  repeated string frameless_functions = 6;
+
+  // What error_reporting() reports before any script changes it. This is an ini
+  // default rather than E_ALL -- the build decides which levels start enabled --
+  // so it is harvested along with everything else that varies by build.
+  int64 default_error_reporting = 7;
+
+  // zend.assertions for this build. ZEND_ASSERT_CHECK branches on it, and a
+  // build that compiled assertions out produces IR that must not run them.
+  int64 assertions = 8;
+
+  // INI directives registered by the linked engine, in the sorted order
+  // ini_get_all() exposes. The owning extension and access mask are part of
+  // the registry rather than stable language constants.
+  repeated IniEntry ini_entries = 9;
+
+  // Exact names in the linked module registry. An extension with no INI
+  // directives still makes ini_get_all(extension) return an empty array.
+  repeated string extensions = 10;
+}
+
+message IniEntry {
+  string name = 1;
+  optional string global_value = 2;
+  optional string local_value = 3;
+  uint32 access = 4;
+  string extension = 5;
+}
+
+message Constant {
+  string name = 1;
+  Literal value = 2;
+
+  // The engine's own deprecation flag. Using such a constant reports, and which
+  // ones carry it belongs to the build rather than to this runtime.
+  bool deprecated = 3;
+}
+
+message Provenance {
+  string php_version = 1;
+
+  // Operand encoding. znode_op's width changes with these flags, so a decoder
+  // must check them rather than assume a layout.
+  uint32 sizeof_znode_op = 2;
+  bool absolute_jump_addresses = 3;
+  bool absolute_constant_addresses = 4;
+}
+
+// Unit is everything one source file compiles to.
+message Unit {
+  // The file's own op_array: top-level statements.
+  OpArray file = 1;
+
+  // Functions declared unconditionally at top level. A conditional declaration
+  // emits a DECLARE_FUNCTION opcode instead and only binds at run time, so it
+  // is not present here.
+  repeated OpArray functions = 2;
+
+  repeated Class classes = 3;
+
+  // What the compiler printed while compiling this file and still succeeding --
+  // a deprecation for `${expr}` interpolation, say. It is part of the program's
+  // output and appears before anything the program itself prints.
+  string compile_diagnostic = 4;
+
+  // The superglobals the engine creates only for a script that names one --
+  // `_SERVER`, `_ENV`, `_REQUEST` under auto_globals_jit -- in the order
+  // compiling this file created them. Read back from the compile rather than
+  // from the op_arrays: `$GLOBALS["_SERVER"]` compiles to the same opcode as
+  // `$_SERVER` and does not create it.
+  repeated string auto_globals = 5;
+}
+
+message OpArray {
+  // Empty for a file's own op_array, set for functions and methods.
+  string name = 1;
+  string filename = 2;
+  uint32 line_start = 3;
+  uint32 line_end = 4;
+  // The `/** ... */` comment written right before the declaration, which
+  // the reflectors' getDocComment and __toString print.
+  string doc_comment = 28;
+
+  // Number of temporaries the engine reserves.
+  uint32 num_temps = 5;
+
+  // Compiled variable names, in slot order.
+  repeated string var_names = 6;
+  repeated Literal literals = 7;
+  repeated Opline oplines = 8;
+
+  repeated ArgInfo args = 9;
+  string return_type = 10;
+  // Parameters with defaults are declared but not required.
+  uint32 required_args = 11;
+
+  repeated TryCatch try_catch = 12;
+  repeated LiveRange live_ranges = 13;
+
+  // Closures and arrow functions, which are nested rather than named.
+  repeated OpArray closures = 14;
+
+  // Entries ZEND_BIND_STATIC pulls into a compiled variable: a function's
+  // `static $x = ...` and a closure's `use` list, which share one table.
+  repeated StaticVar static_vars = 15;
+
+  // Modifiers, meaningful only for a method. Visibility is empty for anything
+  // that is not one. Whether a method is static decides whether $this is bound
+  // and how a stack trace names the call, and the body does not say.
+  string visibility = 16;
+  bool static = 17;
+  bool abstract = 18;
+  bool final = 19;
+
+  // Whether the file this was compiled from declared strict_types=1. Coercion
+  // is decided by the caller's file, so the flag travels with the op_array.
+  bool strict_types = 20;
+
+  // Whether the body mentions $this. The compiler records it, and unbinding a
+  // closure that does is refused rather than allowed to fail later.
+  bool uses_this = 21;
+
+  // `function &f()`, and a `&get` property hook.
+  bool returns_ref = 25;
+
+  // Every `#[...]` written on the declaration, in source order.
+  repeated Attribute attributes = 26;
+
+  // PHP 8.4's #[\Deprecated]. The two arguments are optional and may be
+  // expressions the compiler deferred, so they travel as literals.
+  bool deprecated = 22;
+  Literal deprecated_message = 23;
+  Literal deprecated_since = 24;
+  // A return type the engine has not started enforcing. Only an engine method
+  // has one: a mismatch against it is a deprecation rather than an error, but
+  // the diagnostic about the *parameters* still prints it.
+  bool tentative_return = 27;
+}
+
+message Opline {
+  // Opcode number; resolve the name through Manifest.opcode_names.
+  uint32 opcode = 1;
+
+  uint32 op1_type = 2;
+  uint32 op2_type = 3;
+  uint32 result_type = 4;
+  uint32 op1 = 5;
+  uint32 op2 = 6;
+  uint32 result = 7;
+  uint32 extended_value = 8;
+
+  // Source line. Every later stage is annotated from this.
+  uint32 line = 9;
+
+  // Set when the engine fused this comparison with the branch that follows it.
+  // Empty otherwise. Kept because it is real information about control flow,
+  // not an artefact of the encoding.
+  string smart_branch = 10;
+}
+
+message Literal {
+  enum Kind {
+    KIND_UNSPECIFIED = 0;
+    KIND_NULL = 1;
+    KIND_BOOL = 2;
+    KIND_INT = 3;
+    KIND_FLOAT = 4;
+    KIND_STRING = 5;
+    // Array literals are recorded but not yet expanded; flagged rather than
+    // silently dropped.
+    KIND_ARRAY = 6;
+    KIND_OTHER = 7;
+    // An initializer the compiler could not fold, kept as a shape.
+    KIND_EXPR = 8;
+  }
+  Kind kind = 1;
+  int64 int_value = 2;
+  double float_value = 3;
+  string string_value = 4;
+
+  // Elements when kind is KIND_ARRAY. A literal array whose elements are all
+  // constant is folded by the compiler into one literal, so this is the only
+  // place its contents appear.
+  repeated LiteralEntry entries = 5;
+
+  // The shape when kind is KIND_EXPR.
+  Expr expression = 6;
+
+  // extra_value marks a numeric-string array offset the compiler turned into
+  // an int (`$o["0"]`) and kept, as written, in the **next** literal: an
+  // ArrayAccess object is handed that original string, an array the int.
+  bool extra_value = 7;
+}
+
+// Expr is one node of a constant initializer the compiler could not fold --
+// `self::B`, `A[0]`, `1 << 2`. The engine keeps such an initializer as an AST
+// and evaluates it on first use; a runtime with no parser can only do the same
+// if the shape is harvested.
+message Expr {
+  // What the node does. "unsupported" is a node kind the harvest did not
+  // recognise, which leaves the constant undefined rather than inventing a
+  // value for it.
+  string kind = 1;
+  // Set when kind is "literal".
+  Literal value = 2;
+  // The constant or class name, and a class constant's member name.
+  string name = 3;
+  string member = 4;
+  // The engine's opcode number for "binary"; resolve it through the manifest's
+  // opcode table rather than assuming a numbering.
+  uint32 op = 5;
+  // A missing child -- the middle of `a ?: b`, or an array element with no
+  // key -- is represented by a node of kind "none".
+  repeated Expr children = 6;
+
+  // The source line the node was written on. A constant expression is evaluated
+  // with the reported position moved to its declaration, so a diagnostic raised
+  // inside one names the line the initializer is on rather than the line that
+  // read it.
+  uint32 line = 7;
+}
+
+message LiteralEntry {
+  bool int_key = 1;
+  int64 int_key_value = 2;
+  string string_key = 3;
+  Literal value = 4;
+}
+
+message StaticVar {
+  string name = 1;
+  // The initializer. **Present for a closure's `use` variable too**, holding
+  // null -- the engine keeps captures and `static` declarations in one table
+  // and does not distinguish them here. An earlier comment claimed this field
+  // was absent for a capture; measured, it is not, and a consumer that told
+  // the two apart by it bound `use ($cap)` to a fresh static.
+  //
+  // ZEND_BIND_STATIC's extended_value does separate them, but only by a bit
+  // pattern: captures measured 2, 4, 5, 36, 37 and statics 1, 33, 65, 97. The
+  // generated program uses the capture map instead, which is exact by
+  // construction.
+  Literal default_value = 2;
+  bool has_default = 3;
+}
+
+// Attribute is one `#[Name(args)]`. The arguments are constant expressions, so
+// they are carried the same way a property default is -- unevaluated.
+message Attribute {
+  string name = 1;
+  repeated AttributeArg args = 2;
+  uint32 line = 3;
+}
+
+message AttributeArg {
+  // Empty for a positional argument.
+  string name = 1;
+  Literal value = 2;
+}
+
+message ArgInfo {
+  string name = 1;
+  // Declared type as PHP renders it, empty when untyped.
+  string type = 2;
+  // By-reference parameters cannot be passed as ordinary values.
+  bool by_ref = 3;
+  bool variadic = 4;
+  // Attributes written on this parameter. The engine keeps them in the
+  // function's own list, told apart by an offset of the parameter's position
+  // plus one -- so a function's list has to be filtered to get either.
+  repeated Attribute attributes = 5;
+  // Default as the declaration wrote it. Only an internal declaration carries
+  // one here; a user function keeps it in a RECV_INIT opline.
+  string default_value = 6;
+}
+
+message TryCatch {
+  uint32 try_op = 1;
+  uint32 catch_op = 2;
+  uint32 finally_op = 3;
+  uint32 finally_end = 4;
+}
+
+message LiveRange {
+  uint32 var = 1;
+  uint32 start = 2;
+  uint32 end = 3;
+
+  // What the temporary is, which decides how leaving its range releases it:
+  // ZEND_LIVE_LOOP (1) is a foreach's iterator, ZEND_LIVE_NEW (4) a half-built
+  // object, ZEND_LIVE_SILENCE (2) an `@` and ZEND_LIVE_ROPE (3) a string being
+  // concatenated. The engine packs it into the low bits of `var`.
+  uint32 kind = 4;
+}
+
+message Class {
+  enum Kind {
+    KIND_UNSPECIFIED = 0;
+    KIND_CLASS = 1;
+    KIND_INTERFACE = 2;
+    KIND_TRAIT = 3;
+    KIND_ENUM = 4;
+  }
+
+  string name = 1;
+  Kind kind = 2;
+  string parent = 3;
+  repeated string interfaces = 4;
+  repeated string traits = 5;
+  bool abstract = 6;
+  bool final = 7;
+  // "int" or "string" for a backed enum, empty otherwise.
+  string enum_backing_type = 8;
+
+  repeated Property properties = 9;
+  repeated OpArray methods = 10;
+
+  // Magic accessors mean a property read or method call can run arbitrary
+  // code, so such a class cannot be reduced to plain field access.
+  bool has_get = 11;
+  bool has_set = 12;
+  bool has_call = 13;
+  bool has_call_static = 14;
+
+  // The #[AllowDynamicProperties] opt-in. Without it, assigning a property the
+  // class did not declare is deprecated.
+  bool allow_dynamic_properties = 16;
+
+  // Some engine classes refuse a property they did not declare outright rather
+  // than deprecating it -- Closure, Generator, WeakMap. The flag is the
+  // engine's own; nothing here decides which classes carry it.
+  bool no_dynamic_properties = 23;
+
+  // Some engine classes refuse to be serialized or unserialized at all --
+  // Closure, Generator, WeakReference, WeakMap. The flag is the engine's.
+  bool not_serializable = 24;
+
+  // A class with its own object-creation handler carries engine state that a
+  // lazy object cannot stand in for. The flag is inherited, so a user class
+  // extending one has it too -- and stdClass, which has no handler, does not.
+  bool custom_create = 33;
+
+  // A class the engine refuses to clone: it has no clone handler at all, so
+  // `clone $o` is an Error. Generator, Fiber and WeakReference carry it;
+  // ArrayObject and Closure do not.
+  bool no_clone = 34;
+
+  // PHP 8.2's `readonly class`, which makes every declared property readonly.
+  // The flag is needed on its own because a trait's property is *not* made
+  // readonly by it -- using such a trait is refused at link time -- and
+  // nothing about the flattened property list says the class asked for it.
+  bool readonly = 36;
+
+  repeated ClassConstant constants = 15;
+
+  // The methods the engine supplies for this class, which have no op_array to
+  // carry. method_exists and is_callable answer about them, and the answer is
+  // about the engine's build rather than about what this runtime has
+  // implemented -- calling one it has not still reports as a gap.
+  repeated EngineMethod engine_methods = 17;
+
+  // Where the class was written. A redeclaration diagnostic names the first
+  // declaration's site.
+  string filename = 18;
+  uint32 line_start = 19;
+  // Where the declaration ends, which only the reflectors' __toString needs.
+  uint32 line_end = 35;
+  // The class's `/** ... */` doc comment.
+  string doc_comment = 37;
+
+  // Every `#[...]` written on the class, in source order.
+  repeated Attribute attributes = 20;
+
+  // The `as` and `insteadof` clauses of a `use` statement. Without them a
+  // trait's methods are reachable only under their own names.
+  repeated TraitAlias trait_aliases = 21;
+  repeated TraitPrecedence trait_precedences = 22;
+}
+
+// TraitAlias is one `T::m as [visibility] n`. class is empty when the clause
+// did not name a trait; alias is empty when it only changed the visibility.
+message TraitAlias {
+  string class = 1;
+  string method = 2;
+  string alias = 3;
+  string visibility = 4;
+
+  // `T::m as final`: the composed method is final even though the trait did
+  // not declare it so.
+  bool final = 5;
+}
+
+// TraitPrecedence is one `T::m insteadof U, V`.
+message TraitPrecedence {
+  string class = 1;
+  string method = 2;
+  repeated string excludes = 3;
+}
+
+// EngineMethod is a method the linked build provides. Only what the reflective
+// builtins need travels: there is no body to carry.
+message EngineMethod {
+  string name = 1;
+  string visibility = 2;
+  bool static = 3;
+  bool abstract = 4;
+  // Declared signature. An engine method has no op_array, but a class
+  // implementing an engine interface still has to be compatible with it.
+  repeated ArgInfo args = 5;
+  string return_type = 6;
+  uint32 required_args = 7;
+  bool variadic = 8;
+  // A return type the engine has not started enforcing.
+  bool tentative_return = 9;
+  // Reflection reports it, and a class extending the build's own cannot
+  // override it.
+  bool final = 10;
+}
+
+message ClassConstant {
+  string name = 1;
+  // Where the constant was written. The engine flattens inherited constants
+  // into every subclass's table, and `self` in an initializer means the class
+  // that declared it rather than the one it was reached through.
+  string declaring_class = 15;
+
+  // PHP 8.4's #[\Deprecated], as on OpArray.
+  bool deprecated = 10;
+  Literal deprecated_message = 11;
+  Literal deprecated_since = 12;
+
+  // An enum case rather than an ordinary constant. Its value is an instance of
+  // the enum, which the runtime builds -- `value` holds only the declared
+  // backing value, and is absent for a pure enum.
+  bool is_case = 6;
+  repeated Attribute attributes = 13;
+  // PHP 8.3's declared constant type, empty when there is none.
+  string type = 14;
+  string visibility = 2;
+  bool final = 3;
+  // Absent when the initializer is an expression the compiler defers, such as
+  // one referring to another constant. Such a constant is evaluated on first
+  // use rather than at declaration.
+  Literal value = 4;
+  bool has_value = 5;
+  // The `/** ... */` written before the constant, for
+  // ReflectionClassConstant::getDocComment. A trait's constant keeps it when
+  // a class composes it.
+  string doc_comment = 16;
+}
+
+message Property {
+  string name = 1;
+
+  // Where the property was declared, which is not always the class it was read
+  // from: a class's table includes what it inherited. Static properties share
+  // storage with their declaration, so this decides whether B::$v and D::$v are
+  // the same slot.
+  string declaring_class = 8;
+  string type = 2;
+  string visibility = 3;
+  bool static = 4;
+  bool readonly = 5;
+
+  // The declared initializer. has_default separates "= null" from no
+  // initializer, which for a typed property means uninitialized rather than
+  // null.
+  Literal default_value = 6;
+  bool has_default = 7;
+
+  // A PHP 8.4 hooked property. The bodies live on the property rather than in
+  // the class's function table, so they travel here. virtual marks one with no
+  // backing storage: it has no slot on the object and exists only through the
+  // hooks.
+  OpArray get_hook = 9;
+  OpArray set_hook = 10;
+  bool virtual = 11;
+
+  // Every `#[...]` written on the property, in source order.
+  repeated Attribute attributes = 13;
+
+  // The write half of an asymmetrically visible property: `public
+  // private(set) $p` reads as public and writes as private. Empty when writing
+  // is as visible as reading.
+  string set_visibility = 12;
+
+  // Where this property sits in the engine's properties_info, which is
+  // declaration order within a class. The table below is sorted by slot offset
+  // instead -- that is what var_dump and foreach expose -- and the two differ:
+  // a static property has no slot among the instance ones, and reflection
+  // still lists it where it was written.
+  uint32 order = 14;
+  // `final` on the property, explicit or implied by private(set): the
+  // reflectors' export prints it.
+  bool final = 15;
+  // The property's `/** ... */`, which the reflectors' export prints.
+  string doc_comment = 16;
+}
+
+message Builtin {
+  string name = 1;
+  repeated ArgInfo args = 2;
+  string return_type = 3;
+  uint32 required_args = 4;
+  bool variadic = 5;
+}

@@ -1,0 +1,70 @@
+load("@rules_foreign_cc//foreign_cc:defs.bzl", "configure_make")
+load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
+
+package(default_visibility = ["//visibility:public"])
+
+configure_make(
+    name = "m4_build",
+    configure_options = ["--disable-dependency-tracking"],
+    lib_source = "@m4_src//:all",
+    out_binaries = ["m4"],
+    targets = [
+        "",
+        "install",
+    ],
+)
+
+configure_make(
+    name = "bison_build",
+    # NLS pulls in gettext machinery that has nothing to do with generating a
+    # parser.
+    configure_options = [
+        "--disable-dependency-tracking",
+        "--disable-nls",
+    ],
+    lib_source = "@bison_src//:all",
+    out_binaries = ["bison"],
+    # Bison loads m4sugar.m4 from its data directory at run time, so the whole
+    # install tree is an output, not just the binary.
+    out_data_dirs = ["share"],
+    targets = [
+        "",
+        "install",
+    ],
+)
+
+configure_make(
+    name = "re2c_build",
+    configure_options = ["--disable-dependency-tracking"],
+    lib_source = "@re2c_src//:all",
+    out_binaries = ["re2c"],
+    targets = [
+        "",
+        "install",
+    ],
+)
+
+filegroup(
+    name = "m4",
+    srcs = [":m4_build"],
+    output_group = "m4",
+)
+
+filegroup(
+    name = "re2c",
+    srcs = [":re2c_build"],
+    output_group = "re2c",
+)
+
+# Bison cannot be used directly: it resolves m4 through PATH and its skeleton
+# directory through a prefix baked in at configure time, neither of which
+# survives into a sandboxed action. The wrapper points both at the built
+# artifacts before exec'ing it.
+sh_binary(
+    name = "bison",
+    srcs = ["bison_wrapper.sh"],
+    data = [
+        ":bison_build",
+        ":m4",
+    ],
+)

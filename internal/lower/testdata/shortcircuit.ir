@@ -1,0 +1,68 @@
+func {main} -> zval {
+  .file "shortcircuit.php"
+
+bb0:
+.line 12
+  ret 1
+}
+func pick -> zval {
+  .file "shortcircuit.php"
+  .params [ 0 $a "", 1 $b "" ]
+
+bb0:
+.line 2
+  %0:zval = recv 0
+  call.intrinsic "write_var"($a, %0)
+  %1:zval = recv 1
+.line 6
+  %16:zval = call.intrinsic "read_var"($a)
+  %2:bool = call.intrinsic "to_bool"(%16)
+  br %2, bb1, bb2(%2)
+
+bb1:
+  %3:zval = call.intrinsic "to_bool"(%1)
+  jmp bb2(%3)
+
+bb2(%24: zval):
+  %4:*arr = call.intrinsic "array.new"()
+  %5:*arr = call.intrinsic "array.append"(%4, %24)
+.line 7
+  %18:zval = call.intrinsic "read_var"($a)
+  %6:bool = call.intrinsic "to_bool"(%18)
+  br %6, bb4(%6), bb3
+
+bb3:
+  %7:zval = call.intrinsic "to_bool"(%1)
+  jmp bb4(%7)
+
+bb4(%25: zval):
+  %8:*arr = call.intrinsic "array.append"(%5, %25)
+.line 8
+  %20:zval = call.intrinsic "read_var.silent"($a)
+  %9:zval = call.intrinsic "copy.silent"(%20), share
+  %10:bool = call.intrinsic "is_set"(%9)
+  br %10, bb6(%9), bb5
+
+bb5:
+  %11:zval = call.intrinsic "copy"(%1), share
+  jmp bb6(%11)
+
+bb6(%26: zval):
+  %12:*arr = call.intrinsic "array.append"(%8, %26)
+.line 9
+  %22:zval = call.intrinsic "read_var"($a)
+  %13:zval = call.intrinsic "copy"(%22), share
+  br %13, bb8(%13), bb7
+
+bb7:
+  %14:zval = call.intrinsic "copy"(%1), share
+  jmp bb8(%14)
+
+bb8(%27: zval):
+  %15:*arr = call.intrinsic "array.append"(%12, %27)
+  ret %15
+
+bb9:
+.line 11
+  ret null
+}
